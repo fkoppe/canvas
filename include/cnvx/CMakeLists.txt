@@ -3,3 +3,5 @@ target_sources(
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/canvas.h
 )
+
+add_subdirectory(logger)
