@@ -13,6 +13,23 @@ target_link_libraries(
     glfw
 )
 
+find_package(Vulkan REQUIRED)
+if(Vulkan_FOUND)
+	message(STATUS "VulkanSDK found")
+    target_link_libraries(
+        canvas
+        PRIVATE
+        Vulkan::Vulkan
+    )
+    target_include_directories(
+        canvas
+        PRIVATE
+        ${VULKAN_INCLUDE_DIRS}
+    )
+else()
+message(WARNING "VulkanSDK not found")
+endif()
+
 add_subdirectory(include)
 add_subdirectory(library)
 add_subdirectory(source)
