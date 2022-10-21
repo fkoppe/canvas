@@ -26,6 +26,8 @@
 #include "cnvx/logger/color.h"
 #include "cnvx/logger/logger.h"
 
+#include "cnvx/window/window.h"
+
 #include "sprx/core/info.h"
 
 static const char* const CNVX_INFO_LIBRARY_NAME = "canvas";

@@ -10,6 +10,7 @@ target_link_libraries(
     canvas
     PRIVATE
     spore
+    glfw
 )
 
 add_subdirectory(include)
