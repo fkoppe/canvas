@@ -5,3 +5,4 @@ target_sources(
 )
 
 add_subdirectory(logger)
+add_subdirectory(pch)

@@ -20,15 +20,11 @@
 *                                                                                   *
 ************************************************************************************/
 
-#ifndef ___CNVX___CANVAS_H
-#define ___CNVX___CANVAS_H
+#ifndef ___CNVX___CNVXMODULE_H
+#define ___CNVX___CNVXMODULE_H
 
-#include "cnvx/logger/color.h"
-#include "cnvx/logger/logger.h"
+#include "sprx/core/module.h"
 
-#include "sprx/core/info.h"
+#define SPRX_MODULE SPRX_MODULE_MAKE("canvas", true)
 
-static const char* const CNVX_INFO_LIBRARY_NAME = "canvas";
-static const SPRX_VERSION CNVX_INFO_LIBRARY_VERSION = SPRX_VERSION_MAKE(0, 0, 1, 0);
-
-#endif // ___CNVX___CANVAS_H
+#endif // ___CNVX___CNVXMODULE_H
