@@ -24,17 +24,18 @@
 #define ___CNVX___LOGGER_H
 
 #include "sprx/core/essentials.h"
+#include "sprx/core/module.h"
 
 #define CNVX_LOGGER_TIMESTAMP_SIZE (sizeof(char) * 8)
 #define CNVX_LOGGER_TIMESTAMP_TERMINATED_SIZE (sizeof(char) * 9)
 
 #ifndef ___CNVX_NOLOG
-#define CNVX_LOG(logger, level, message) canvas_logger_log(logger, level, CNVX_LOGGER_ACTOR_CLIENT, message)
-#define CNVX_LOGF(logger, level, format, ...) canvas_logger_logf(logger, level, CNVX_LOGGER_ACTOR_CLIENT, format, __VA_ARGS__)
-#define CNVX_LOGV(logger, level, format, args) canvas_logger_logf(logger, level, CNVX_LOGGER_ACTOR_CLIENT, format, args)
-#define CNVX_NLOG(logger, level, name, message) canvas_logger_nlog(logger, level, CNVX_LOGGER_ACTOR_CLIENT, name, message)
-#define CNVX_NLOGF(logger, level, name, format, ...) canvas_logger_nlogf(logger, level, CNVX_LOGGER_ACTOR_CLIENT, name, format, __VA_ARGS__)
-#define CNVX_NLOGV(logger, level, name, format, args) canvas_logger_nlogf(logger, level, CNVX_LOGGER_ACTOR_CLIENT, name, format, args)
+#define CNVX_LOG(logger, level, message) canvas_logger_log(logger, level, canvas_logger_actor_get(SPRX_MODULE), message)
+#define CNVX_LOGF(logger, level, format, ...) canvas_logger_logf(logger, level, canvas_logger_actor_get(SPRX_MODULE), format, __VA_ARGS__)
+#define CNVX_LOGV(logger, level, format, args) canvas_logger_logf(logger, level, canvas_logger_actor_get(SPRX_MODULE), format, args)
+#define CNVX_NLOG(logger, level, name, message) canvas_logger_nlog(logger, level, canvas_logger_actor_get(SPRX_MODULE), name, message)
+#define CNVX_NLOGF(logger, level, name, format, ...) canvas_logger_nlogf(logger, level, canvas_logger_actor_get(SPRX_MODULE), name, format, __VA_ARGS__)
+#define CNVX_NLOGV(logger, level, name, format, args) canvas_logger_nlogf(logger, level, canvas_logger_actor_get(SPRX_MODULE), name, format, args)
 #else
 #define CNVX_LOG(logger, level, message)
 #define CNVX_LOGF(logger, level, format, ...)
@@ -88,5 +89,7 @@ void canvas_logger_logv(void* const logger, const CNVX_Logger_Level level, const
 void canvas_logger_nlog(void* const logger, const CNVX_Logger_Level level, const CNVX_Logger_Actor actor, const char* const name, const char* const message);
 void canvas_logger_nlogf(void* const logger, const CNVX_Logger_Level level, const CNVX_Logger_Actor actor, const char* const name, const char* const format, ...);
 void canvas_logger_nlogv(void* const logger, const CNVX_Logger_Level level, const CNVX_Logger_Actor actor, const char* const name, const char* const format, const va_list args);
+
+CNVX_Logger_Actor canvas_logger_actor_get(const SPRX_Module* const module);
 
 #endif // ___CNVX___LOGGER_H

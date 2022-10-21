@@ -52,8 +52,6 @@ typedef struct CNVX_Logger_PRVATE
     CNVX_Logger_Settings settings;
 } CNVX_Logger_PRVATE;
 
-#pragma warning(disable: 6011)
-
 void canvas_logger_level_match_PRIVATE(const CNVX_Logger_Level level_, const char** const name_, const char** const color_)
 {
     SPRX_ASSERT(___CNVX_LOGGER_LEVEL_MAX > level_, CNVX_LOGGER_ERROR_ENUM("invalid value of logger level"));
@@ -118,8 +116,6 @@ void canvas_logger_actor_match_PRIVATE(void* const logger_, const CNVX_Logger_Le
         break;
     }
 }
-
-#pragma warning(disable: 28182)
 
 void canvas_logger_timestamp_recent_make_PRIVATE(void* const logger_)
 {
@@ -217,8 +213,6 @@ void canvas_logger_timestamp_terminated_get(void* const logger_, char* const des
 
     spore_mutex_unlock(logger->mutex);
 }
-
-#pragma warning(default: 6011, 28182)
 
 void canvas_logger_log(void* const logger_, const CNVX_Logger_Level level_, const CNVX_Logger_Actor actor_, const char* const message_)
 {
@@ -755,4 +749,17 @@ void canvas_logger_nlogv(void* const logger_, const CNVX_Logger_Level level_, co
     }
 
     spore_mutex_unlock(logger->mutex);
+}
+
+CNVX_Logger_Actor canvas_logger_actor_get(const SPRX_Module* const module_)
+{
+    if (NULL != module_)
+    {
+        if (module_->core_is)
+        {
+            return CNVX_LOGGER_ACTOR_CORE;
+        }
+    }
+
+    return CNVX_LOGGER_ACTOR_CLIENT;
 }
