@@ -77,8 +77,10 @@ typedef struct CNVX_Logger_Settings
     } apperance;
 } CNVX_Logger_Settings;
 
-void* canvas_logger_new(const CNVX_Logger_Settings settings, void* const output, void* const mutex, const char* const app_name);
+void* canvas_logger_new(const CNVX_Logger_Settings settings, void* const output, void* const mutex, const char* const module_name);
 void canvas_logger_delete(void* const logger);
+
+void canvas_logger_update(void* const logger);
 
 void canvas_logger_timestamp_get(void* const logger, char* destination);
 void canvas_logger_timestamp_terminated_get(void* const logger, char* const destination);

@@ -31,6 +31,7 @@
 #include "sprx/core/terminate.h"
 #include "sprx/file/file.h"
 #include "sprx/thread/mutex.h"
+#include "sprx/thread/thread.h"
 
 #include <time.h>
 
@@ -41,7 +42,7 @@
 
 typedef struct CNVX_Logger_PRVATE
 {
-    const char* app_name;
+    const char* module_name;
     time_t now;
     bool recent_is;
     char* timestamp;
@@ -94,7 +95,7 @@ void canvas_logger_level_match_PRIVATE(const CNVX_Logger_Level level_, const cha
     }
 }
 
-void canvas_logger_actor_match_PRIVATE(void* const logger_, const CNVX_Logger_Level actor_, const char** const name_, const char** const color_)
+void canvas_logger_actor_match_PRIVATE(void* const logger_, const CNVX_Logger_Actor actor_, const char** const name_, const char** const color_)
 {
     SPRX_ASSERT(NULL != logger_, CNVX_LOGGER_ERROR_NULL("logger"));
     SPRX_ASSERT(___CNVX_LOGGER_ACTOR_MAX > actor_, CNVX_LOGGER_ERROR_ENUM("invalid value of logger actor"));
@@ -132,19 +133,21 @@ void canvas_logger_timestamp_recent_make_PRIVATE(void* const logger_)
         spore_digits_to_char_array(tm_now.tm_hour, 2, logger->timestamp + 0);
         spore_digits_to_char_array(tm_now.tm_min, 2, logger->timestamp + 3);
         spore_digits_to_char_array_terminated(tm_now.tm_sec, 2, logger->timestamp + 6);
+
+        logger->recent_is = true;
     }
 }
 
-void* canvas_logger_new(const CNVX_Logger_Settings settings_, void* const output_, void* const mutex_, const char* const app_name_)
+void* canvas_logger_new(const CNVX_Logger_Settings settings_, void* const output_, void* const mutex_, const char* const module_name)
 {
     SPRX_ASSERT(___CNVX_LOGGER_LEVEL_MAX > settings_.level_min, CNVX_LOGGER_ERROR_ENUM("invalid value of logger settings.level_min"));
     SPRX_ASSERT(NULL != mutex_, CNVX_LOGGER_ERROR_NULL("mutex"));
-    SPRX_ASSERT(NULL != app_name_, CNVX_LOGGER_ERROR_NULL("app_name"));
+    SPRX_ASSERT(NULL != module_name, CNVX_LOGGER_ERROR_NULL("app_name"));
 
     CNVX_Logger_PRVATE* const logger = malloc(sizeof(*logger));
     SPRX_ASSERT(NULL != logger, CNVX_LOGGER_ERROR_ALLOCATION);
 
-    logger->app_name = app_name_;
+    logger->module_name = module_name;
     logger->now = 0;
     logger->recent_is = false;
     logger->string = spore_string_new_c(SPRX_SPRINTF_BUFFER_SIZE_MIN);
@@ -191,6 +194,15 @@ void canvas_logger_timestamp_get(void* const logger_, char* destination_)
     }
 
     spore_mutex_unlock(logger->mutex);
+}
+
+void canvas_logger_update(void* const logger_)
+{
+    SPRX_ASSERT(NULL != logger_, CNVX_LOGGER_ERROR_NULL("logger"));
+
+    CNVX_Logger_PRVATE* const logger = logger_;
+
+    logger->recent_is = false;
 }
 
 void canvas_logger_timestamp_terminated_get(void* const logger_, char* const destination_)
@@ -248,11 +260,11 @@ void canvas_logger_log(void* const logger_, const CNVX_Logger_Level level_, cons
             {
                 if (logger->settings.apperance.thread_id_hex_is)
                 {
-                    spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
                 }
                 else
                 {
-                    spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
                 }
             }
 
@@ -282,7 +294,7 @@ void canvas_logger_log(void* const logger_, const CNVX_Logger_Level level_, cons
                 if (spore_file_open_is(logger->output))
                 {
                     spore_mutex_lock(logger->output_mutex);
-                    spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+                    spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
                     spore_mutex_unlock(logger->output_mutex);
                 }
                 else
@@ -293,7 +305,7 @@ void canvas_logger_log(void* const logger_, const CNVX_Logger_Level level_, cons
             else
             {
                 spore_mutex_lock(logger->output_mutex);
-                SPRX_PRINTF(canvas_string_cstr(logger->string));
+                SPRX_PRINTF(spore_string_cstr(logger->string));
                 spore_mutex_unlock(logger->output_mutex);
             }
         }
@@ -336,11 +348,11 @@ void canvas_logger_logf(void* const logger_, const CNVX_Logger_Level level_, con
             {
                 if (logger->settings.apperance.thread_id_hex_is)
                 {
-                    spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
                 }
                 else
                 {
-                    spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
                 }
             }
 
@@ -379,7 +391,7 @@ void canvas_logger_logf(void* const logger_, const CNVX_Logger_Level level_, con
                 if (spore_file_open_is(logger->output))
                 {
                     spore_mutex_lock(logger->output_mutex);
-                    spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+                    spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
                     spore_mutex_unlock(logger->output_mutex);
                 }
                 else
@@ -427,11 +439,11 @@ void canvas_logger_logv(void* const logger_, const CNVX_Logger_Level level_, con
     {
         if (logger->settings.apperance.thread_id_hex_is)
         {
-            spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+            spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
         }
         else
         {
-            spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+            spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
         }
     }
 
@@ -463,7 +475,7 @@ void canvas_logger_logv(void* const logger_, const CNVX_Logger_Level level_, con
         if (spore_file_open_is(logger->output))
         {
             spore_mutex_lock(logger->output_mutex);
-            spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+            spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
             spore_mutex_unlock(logger->output_mutex);
         }
         else
@@ -474,7 +486,7 @@ void canvas_logger_logv(void* const logger_, const CNVX_Logger_Level level_, con
     else
     {
         spore_mutex_lock(logger->output_mutex);
-        SPRX_PRINTF(canvas_string_cstr(logger->string));
+        SPRX_PRINTF(spore_string_cstr(logger->string));
         spore_mutex_unlock(logger->output_mutex);
     }
 
@@ -516,11 +528,11 @@ void canvas_logger_nlog(void* const logger_, const CNVX_Logger_Level level_, con
             {
                 if (logger->settings.apperance.thread_id_hex_is)
                 {
-                    spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
                 }
                 else
                 {
-                    spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
                 }
             }
 
@@ -550,7 +562,7 @@ void canvas_logger_nlog(void* const logger_, const CNVX_Logger_Level level_, con
                 if (spore_file_open_is(logger->output))
                 {
                     spore_mutex_lock(logger->output_mutex);
-                    spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+                    spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
                     spore_mutex_unlock(logger->output_mutex);
                 }
                 else
@@ -561,7 +573,7 @@ void canvas_logger_nlog(void* const logger_, const CNVX_Logger_Level level_, con
             else
             {
                 spore_mutex_lock(logger->output_mutex);
-                SPRX_PRINTF(canvas_string_cstr(logger->string));
+                SPRX_PRINTF(spore_string_cstr(logger->string));
                 spore_mutex_unlock(logger->output_mutex);
             }
         }
@@ -605,11 +617,11 @@ void canvas_logger_nlogf(void* const logger_, const CNVX_Logger_Level level_, co
             {
                 if (logger->settings.apperance.thread_id_hex_is)
                 {
-                    spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
                 }
                 else
                 {
-                    spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+                    spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
                 }
             }
 
@@ -648,7 +660,7 @@ void canvas_logger_nlogf(void* const logger_, const CNVX_Logger_Level level_, co
                 if (spore_file_open_is(logger->output))
                 {
                     spore_mutex_lock(logger->output_mutex);
-                    spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+                    spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
                     spore_mutex_unlock(logger->output_mutex);
                 }
                 else
@@ -659,7 +671,7 @@ void canvas_logger_nlogf(void* const logger_, const CNVX_Logger_Level level_, co
             else
             {
                 spore_mutex_lock(logger->output_mutex);
-                SPRX_PRINTF(canvas_string_cstr(logger->string));
+                SPRX_PRINTF(spore_string_cstr(logger->string));
                 spore_mutex_unlock(logger->output_mutex);
             }
         }
@@ -697,11 +709,11 @@ void canvas_logger_nlogv(void* const logger_, const CNVX_Logger_Level level_, co
     {
         if (logger->settings.apperance.thread_id_hex_is)
         {
-            spore_string_append_f(logger->string, "[0x%llx]", canvas_thread_id_current_get());
+            spore_string_append_f(logger->string, "[0x%llx]", spore_thread_id_current_get());
         }
         else
         {
-            spore_string_append_f(logger->string, "[%llu]", canvas_thread_id_current_get());
+            spore_string_append_f(logger->string, "[%llu]", spore_thread_id_current_get());
         }
     }
 
@@ -733,7 +745,7 @@ void canvas_logger_nlogv(void* const logger_, const CNVX_Logger_Level level_, co
         if (spore_file_open_is(logger->output))
         {
             spore_mutex_lock(logger->output_mutex);
-            spore_file_write_cstr(logger->output, canvas_string_cstr(logger->string));
+            spore_file_write_cstr(logger->output, spore_string_cstr(logger->string));
             spore_mutex_unlock(logger->output_mutex);
         }
         else
@@ -744,7 +756,7 @@ void canvas_logger_nlogv(void* const logger_, const CNVX_Logger_Level level_, co
     else
     {
         spore_mutex_lock(logger->output_mutex);
-        SPRX_PRINTF(canvas_string_cstr(logger->string));
+        SPRX_PRINTF(spore_string_cstr(logger->string));
         spore_mutex_unlock(logger->output_mutex);
     }
 
