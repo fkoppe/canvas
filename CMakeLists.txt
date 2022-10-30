@@ -13,6 +13,35 @@ target_link_libraries(
     glfw
 )
 
+target_compile_definitions(
+    canvas
+    PUBLIC
+    $<$<CONFIG:Debug>:"___CNVX_DEBUG">
+)
+target_compile_definitions(
+    canvas
+    PUBLIC
+    $<$<CONFIG:RelWithDebInfo>:
+    "___CNVX_DEBUG"
+    "___CNVX_RELWITHDEBINFO"
+    >
+)
+target_compile_definitions(
+    canvas
+    PUBLIC
+    $<$<CONFIG:Release>:
+    "___CNVX_RELEASE"
+    >
+)
+target_compile_definitions(
+    canvas
+    PUBLIC
+    $<$<CONFIG:MinSizeRel>:
+    "___CNVX_RELEASE"
+    "___CNVX_MINSIZEREL"
+    >
+)
+
 find_package(Vulkan REQUIRED)
 if(Vulkan_FOUND)
 	message(STATUS "VulkanSDK found")
