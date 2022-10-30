@@ -20,19 +20,34 @@
 *                                                                                   *
 ************************************************************************************/
 
-#ifndef ___CNVX___CANVAS_H
-#define ___CNVX___CANVAS_H
+#ifndef ___CNVX___RENDERER_H
+#define ___CNVX___RENDERER_H
 
-#include "cnvx/logger/color.h"
-#include "cnvx/logger/logger.h"
-
-#include "cnvx/renderer/renderer.h"
-
-#include "cnvx/window/window.h"
-
+#include "sprx/core/essentials.h"
 #include "sprx/core/info.h"
 
-static const char* const CNVX_INFO_LIBRARY_NAME = "canvas";
-static const SPRX_VERSION CNVX_INFO_LIBRARY_VERSION = SPRX_VERSION_MAKE(0, 0, 1, 0);
+typedef enum CNVX_Renderer_Shader_Type
+{
+    CNVX_RENDERER_SHADER_TYPE_FRAGMENT,
+    CNVX_RENDERER_SHADER_TYPE_VERTEX,
+    ___CNVX_RENDERER_SHADER_TYPE_MAX,
+} CNVX_Renderer_Shader_Type;
 
-#endif // ___CNVX___CANVAS_H
+typedef struct CNVX_Renderer_Settings
+{
+    bool vsync_is;
+} CNVX_Renderer_Settings;
+
+void* canvas_renderer_new(const CNVX_Renderer_Settings settings, const char* const app_name, const SPRX_VERSION app_version, const char* const engine_name, const SPRX_VERSION engine_version, const size_t id, void* const logger);
+void canvas_renderer_delete(void* const renderer);
+
+void canvas_renderer_start(void* const renderer, void* const window);
+void canvas_renderer_stop(void* const renderer);
+
+void canvas_renderer_update(void* const renderer);
+
+void canvas_renderer_resize(void* const renderer, const size_t width, const size_t height);
+
+void canvas_renderer_shader_load(void* const renderer, const CNVX_Renderer_Shader_Type shader_type, const char* const path);
+
+#endif // ___CNVX___RENDERER_H
