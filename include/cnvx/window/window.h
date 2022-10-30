@@ -56,11 +56,11 @@ void canvas_window_delete(void* const window);
 CNVX_Window_Settings canvas_window_settings_get(void* const window);
 void canvas_window_settings_set(void* const window, const CNVX_Window_Settings settings);
 
-void canvas_window_update(void* const window);
-
 void canvas_window_open(void* const window, const char* const title, const size_t width, const size_t height, bool visible_is, void* const renderer);
 void canvas_window_close(void* const window);
 bool canvas_window_open_is(void* const window);
+
+void canvas_window_update(void* const window);
 
 void canvas_window_hide(void* const window);
 void canvas_window_show(void* const window);

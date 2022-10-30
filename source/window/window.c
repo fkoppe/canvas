@@ -119,13 +119,6 @@ void canvas_window_settings_set(void* const window_, const CNVX_Window_Settings 
     window->settings = settings_;
 }
 
-void canvas_window_update(void* const window_)
-{
-    SPRX_ASSERT(NULL != window_, CNVX_WINDOW_ERROR_NULL("window"));
-
-    glfwPollEvents();
-}
-
 void canvas_window_open(void* const window_, const char* const title_, const size_t width_, const size_t height_, bool visible_is_, void* const renderer_)
 {
     //title and renderer are allowed to be =NULL
@@ -190,6 +183,15 @@ bool canvas_window_open_is(void* const window_)
     CNVX_Window_PRIVATE* const window = window_;
 
     return window->handle;
+}
+
+void canvas_window_update(void* const window_)
+{
+    SPRX_ASSERT(NULL != window_, CNVX_WINDOW_ERROR_NULL("window"));
+
+    CNVX_Window_PRIVATE* const window = window_;
+
+    glfwPollEvents();
 }
 
 void canvas_window_hide(void* const window_)
