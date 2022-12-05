@@ -468,12 +468,10 @@ void canvas_vulkan_swapchain_create(void* const renderer_)
     swapchain_create_info.pNext = NULL;
     swapchain_create_info.flags = 0;
     swapchain_create_info.surface = renderer->vk.surface;
-    swapchain_create_info.minImageCount = 1; //@TODO
+    swapchain_create_info.minImageCount = 2; //@TODO
     swapchain_create_info.imageFormat = renderer->vk.format_use;
     swapchain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; //@TODO
 
-    renderer->width = SPRX_MIN(SPRX_MAX(SPRX_MIN(renderer->width, renderer->vk.surface_capabilities.maxImageExtent.width), renderer->vk.surface_capabilities.minImageExtent.width), UINT32_MAX);
-    renderer->height = SPRX_MIN(SPRX_MAX(SPRX_MIN(renderer->height, renderer->vk.surface_capabilities.maxImageExtent.height), renderer->vk.surface_capabilities.minImageExtent.height), UINT32_MAX);
     swapchain_create_info.imageExtent.width = renderer->width;
     swapchain_create_info.imageExtent.height = renderer->height;
     CNVX_NLOGF(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: image extend is %ux%u", renderer->width, renderer->height);
@@ -581,6 +579,11 @@ void canvas_vulkan_shader_create(void* const renderer_)
     CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: shader creation");
 
     renderer->vk.shader_module_count = SPRX_MIN(spore_vector_capacity(renderer->shader_vec), UINT32_MAX);
+
+    if (renderer->vk.shader_module_count < 2)
+    {
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_ERROR, spore_string_substr(renderer->name, 7), "vulkan: required shader missing");
+    }
 
     renderer->vk.shader_module_all = malloc(sizeof(*renderer->vk.shader_module_all) * renderer->vk.shader_module_count);
     SPRX_ASSERT(renderer->vk.shader_module_all, CNVX_VULKAN_ERROR_ALLOCATION);
@@ -901,7 +904,7 @@ void canvas_vulkan_commandpool_create(void* const renderer_)
 
     CNVX_Renderer_PRIVATE* const renderer = renderer_;
 
-    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: commandpool destruction");
+    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: commandpool creation");
 
     VkCommandPoolCreateInfo command_pool_create_info;
     command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -931,7 +934,7 @@ void canvas_vulkan_commandbuffer_create(void* const renderer_)
 
     CNVX_Renderer_PRIVATE* const renderer = renderer_;
 
-    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: commandbuffer destruction");
+    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: commandbuffer creation");
 
     renderer->vk.commandbuffer_all = malloc(sizeof(*renderer->vk.commandbuffer_all) * renderer->vk.swapchain_image_all_count);
     SPRX_ASSERT(NULL != renderer->vk.commandbuffer_all, CNVX_VULKAN_ERROR_ALLOCATION);
@@ -1029,7 +1032,7 @@ void canvas_vulkan_semaphore_create(void* const renderer_)
 
     CNVX_Renderer_PRIVATE* const renderer = renderer_;
 
-    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: semaphore recording");
+    CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "vulkan: semaphore creation");
 
     VkSemaphoreCreateInfo semaphore_create_info;
     semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1071,19 +1074,38 @@ void canvas_vulkan_frame_draw(void* const renderer_)
 
     VkPipelineStageFlags wait_stage_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-    VkSubmitInfo submit_info;
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.pNext = NULL;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
-    submit_info.pWaitDstStageMask = wait_stage_mask;
-    submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
-    submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
+    VkSubmitInfo* submit_infos = malloc(sizeof(*submit_infos) * renderer->vk.swapchain_image_all_count);
 
-    result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
+
+    for (size_t i = 0; i < renderer->vk.swapchain_image_all_count; i++)
+    {
+        submit_infos->sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_infos->pNext = NULL;
+        submit_infos->waitSemaphoreCount = 1;
+        submit_infos->pWaitSemaphores = &renderer->vk.semaphore_image_available;
+        submit_infos->pWaitDstStageMask = wait_stage_mask;
+        submit_infos->commandBufferCount = renderer->vk.swapchain_image_all_count;
+        submit_infos->pCommandBuffers = &renderer->vk.commandbuffer_all[i];
+        submit_infos->signalSemaphoreCount = 1;
+        submit_infos->pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
+    }
+
+    result = vkQueueSubmit(renderer->vk.queue, 2, submit_infos, VK_NULL_HANDLE);
     CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
+
+    //VkSubmitInfo submit_info;
+    //submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    //submit_info.pNext = NULL;
+    //submit_info.waitSemaphoreCount = 1;
+    //submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
+    //submit_info.pWaitDstStageMask = wait_stage_mask;
+    //submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
+    //submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
+    //submit_info.signalSemaphoreCount = 1;
+    //submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
+    //
+    //result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
+    //CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
 
     VkPresentInfoKHR present_info;
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
