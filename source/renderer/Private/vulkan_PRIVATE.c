@@ -468,7 +468,7 @@ void canvas_vulkan_swapchain_create(void* const renderer_)
     swapchain_create_info.pNext = NULL;
     swapchain_create_info.flags = 0;
     swapchain_create_info.surface = renderer->vk.surface;
-    swapchain_create_info.minImageCount = 2; //@TODO
+    swapchain_create_info.minImageCount = 1; //@TODO
     swapchain_create_info.imageFormat = renderer->vk.format_use;
     swapchain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; //@TODO
 
@@ -1074,38 +1074,19 @@ void canvas_vulkan_frame_draw(void* const renderer_)
 
     VkPipelineStageFlags wait_stage_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-    VkSubmitInfo* submit_infos = malloc(sizeof(*submit_infos) * renderer->vk.swapchain_image_all_count);
-
-
-    for (size_t i = 0; i < renderer->vk.swapchain_image_all_count; i++)
-    {
-        submit_infos->sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_infos->pNext = NULL;
-        submit_infos->waitSemaphoreCount = 1;
-        submit_infos->pWaitSemaphores = &renderer->vk.semaphore_image_available;
-        submit_infos->pWaitDstStageMask = wait_stage_mask;
-        submit_infos->commandBufferCount = renderer->vk.swapchain_image_all_count;
-        submit_infos->pCommandBuffers = &renderer->vk.commandbuffer_all[i];
-        submit_infos->signalSemaphoreCount = 1;
-        submit_infos->pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
-    }
-
-    result = vkQueueSubmit(renderer->vk.queue, 2, submit_infos, VK_NULL_HANDLE);
+    VkSubmitInfo submit_info;
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.pNext = NULL;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
+    submit_info.pWaitDstStageMask = wait_stage_mask;
+    submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
+    submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
+    
+    result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
     CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
-
-    //VkSubmitInfo submit_info;
-    //submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    //submit_info.pNext = NULL;
-    //submit_info.waitSemaphoreCount = 1;
-    //submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
-    //submit_info.pWaitDstStageMask = wait_stage_mask;
-    //submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
-    //submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
-    //submit_info.signalSemaphoreCount = 1;
-    //submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
-    //
-    //result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
-    //CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
 
     VkPresentInfoKHR present_info;
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

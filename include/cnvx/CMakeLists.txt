@@ -4,6 +4,7 @@ target_sources(
     ${CMAKE_CURRENT_LIST_DIR}/canvas.h
 )
 
+add_subdirectory(event)
 add_subdirectory(logger)
 add_subdirectory(pch)
 add_subdirectory(renderer)

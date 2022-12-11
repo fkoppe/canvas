@@ -50,7 +50,7 @@ typedef struct CNVX_Window_Settings
     } custom;
 } CNVX_Window_Settings;
 
-void* canvas_window_new(const CNVX_Window_Settings settings, const size_t unique_id, void* const logger);
+void* canvas_window_new(const CNVX_Window_Settings settings, const size_t unique_id, void* const handler, void* const logger);
 void canvas_window_delete(void* const window);
 
 CNVX_Window_Settings canvas_window_settings_get(void* const window);

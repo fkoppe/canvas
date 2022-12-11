@@ -20,6 +20,8 @@
 *                                                                                   *
 ************************************************************************************/
 
+#include "cnvx/event/event.h"
+#include "cnvx/event/handler.h"
 #include "cnvx/logger/logger.h"
 #include "cnvx/window/window.h"
 
@@ -46,14 +48,53 @@ typedef struct CNVX_Window_PRIVATE
     size_t height;
     size_t x;
     size_t y;
+    void* handler;
     void* logger;
     void* renderer;
     CNVX_Window_Settings settings;
     GLFWwindow* handle;
 } CNVX_Window_PRIVATE;
 
-void* canvas_window_new(const CNVX_Window_Settings settings_, const size_t unique_id_, void* const logger_)
+void canvas_window_moved_callback(GLFWwindow* const window_, const int x, const int y)
 {
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_WINDOW_MOVED;
+    event.window = window_;
+    event.pos.x = x;
+    event.pos.y = y;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_resized_callback(GLFWwindow* const window_, const int width, const int height)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_WINDOW_RESIZED;
+    event.window = window_;
+    event.size.width = width;
+    event.size.height = height;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_closed_callback(GLFWwindow* const window_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_WINDOW_CLOSED;
+    event.window = window_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void* canvas_window_new(const CNVX_Window_Settings settings_, const size_t unique_id_, void* const handler_, void* const logger_)
+{
+    SPRX_ASSERT(NULL != handler_, CNVX_WINDOW_ERROR_NULL("handler"));
     SPRX_ASSERT(___CNVX_WINDOW_POSITION_MAX > settings_.position, CNVX_WINDOW_ERROR_ENUM("invalid value of window position"));
 
     CNVX_Window_PRIVATE* const window = malloc(sizeof(*window));
@@ -67,12 +108,19 @@ void* canvas_window_new(const CNVX_Window_Settings settings_, const size_t uniqu
     window->height = 0;
     window->x = 0;
     window->y = 0;
+    window->handler = handler_;
     window->logger = logger_;
     window->renderer = NULL;
     window->settings = settings_;
     window->handle = NULL;
 
     SPRX_ASSERT(GLFW_TRUE == glfwInit(), CNVX_WINDOW_ERROR_GLFW("glfwInit failed"));
+
+    glfwSetWindowUserPointer(window->handle, window);
+
+    glfwSetWindowPosCallback(window->handle, canvas_window_moved_callback);
+    glfwSetWindowSizeCallback(window->handle, canvas_window_resized_callback);
+    glfwSetWindowCloseCallback(window->handle, canvas_window_closed_callback);
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
