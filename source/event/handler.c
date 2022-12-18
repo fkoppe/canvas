@@ -27,11 +27,7 @@
 #include "sprx/core/core.h"
 
 #define CNVX_HANDLER_ERROR_ALLOCATION SPRX_ERROR_ALLOCATION("handler", NULL, NULL)
-//#define CNVX_WINDOW_ERROR_LOGIC(what, info, care) SPRX_ERROR_LOGIC(what, "window", info, care)
-//#define CNVX_WINDOW_ERROR_ARGUMENT(care) SPRX_ERROR_ARGUMENT("window", NULL, care)
 #define CNVX_HANDLER_ERROR_NULL(info) SPRX_ERROR_NULL("handler", info)
-//#define CNVX_WINDOW_ERROR_ENUM(info) SPRX_ERROR_ENUM("window", info, NULL)
-//#define CNVX_WINDOW_ERROR_GLFW(info) SPRX_ERROR_API("glfw", "window", info, NULL)
 
 typedef struct CNVX_Handler_PRIVATE
 {
@@ -78,7 +74,7 @@ CNVX_Event* canvas_handler_next(void* const handler_)
 
 	CNVX_Handler_PRIVATE* const handler = handler_;
 
-	if (spore_vector_capacity(handler->vec_events) > handler->popped)
+	if (spore_vector_size(handler->vec_events) > handler->popped)
 	{
 		handler->popped++;
 
@@ -93,6 +89,8 @@ void canvas_handler_reset(void* const handler_)
 	SPRX_ASSERT(NULL != handler_, CNVX_HANDLER_ERROR_NULL("handler"));
 
 	CNVX_Handler_PRIVATE* const handler = handler_;
+
+    handler->popped = 0;
 
 	spore_vector_clear_reserve(handler->vec_events, handler->growth);
 }

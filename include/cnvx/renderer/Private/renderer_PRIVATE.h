@@ -48,6 +48,7 @@ typedef struct CNVX_Renderer_PRIVATE
     void* logger;
     void* window;
     bool started_is;
+    bool prepared_is;
     CNVX_Renderer_Settings settings;
     struct
     {

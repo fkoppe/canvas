@@ -60,7 +60,10 @@ void* canvas_renderer_new(const CNVX_Renderer_Settings settings_, const char* co
     renderer->logger = logger_;
     renderer->window = NULL;
     renderer->started_is = false;
+    renderer->prepared_is = false;
     renderer->settings = settings_;
+
+    renderer->vk.swapchain = VK_NULL_HANDLE;
 
     canvas_vulkan_instance_create(renderer);
     canvas_vulkan_physical_devices_enumerate(renderer);
@@ -95,6 +98,8 @@ void canvas_renderer_start(void* const renderer_, void* const window_)
 
     if (!renderer->started_is)
     {
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "start initialisation");
+
         renderer->started_is = true;
 
         SPRX_ASSERT(canvas_window_open_is(renderer->window), CNVX_RENDERER_ERROR_LOGIC("failed to start renderer", "window is not opened", NULL));
@@ -102,8 +107,6 @@ void canvas_renderer_start(void* const renderer_, void* const window_)
         canvas_vulkan_surface_create(renderer);
 
         canvas_window_framebuffer_size_get(renderer->window, &renderer->width, &renderer->height);
-        renderer->width = SPRX_MIN(SPRX_MAX(SPRX_MIN(renderer->width, renderer->vk.surface_capabilities.maxImageExtent.width), renderer->vk.surface_capabilities.minImageExtent.width), UINT32_MAX);
-        renderer->height = SPRX_MIN(SPRX_MAX(SPRX_MIN(renderer->height, renderer->vk.surface_capabilities.maxImageExtent.height), renderer->vk.surface_capabilities.minImageExtent.height), UINT32_MAX);
 
         canvas_vulkan_swapchain_create(renderer);
         canvas_vulkan_imageviews_create(renderer);
@@ -114,6 +117,11 @@ void canvas_renderer_start(void* const renderer_, void* const window_)
         canvas_vulkan_commandbuffer_create(renderer);
         canvas_vulkan_commandbuffer_record(renderer);
         canvas_vulkan_semaphore_create(renderer);
+
+        renderer->prepared_is = true;
+
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "finish initialisation");
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_INFO, spore_string_substr(renderer->name, 7), "initialisation");
     }
 }
 
@@ -125,19 +133,35 @@ void canvas_renderer_stop(void* const renderer_)
 
     if (renderer->started_is)
     {
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "start shutdown");
+
         vkDeviceWaitIdle(renderer->vk.device);
 
         canvas_vulkan_semaphore_destroy(renderer);
-        canvas_vulkan_commandbuffer_destroy(renderer);
-        canvas_vulkan_commandpool_destroy(renderer);
-        canvas_vulkan_framebuffer_destroy(renderer);
+
+        if (renderer->prepared_is)
+        {
+            canvas_vulkan_commandbuffer_destroy(renderer);
+            canvas_vulkan_commandpool_destroy(renderer);
+            canvas_vulkan_framebuffer_destroy(renderer);
+        }
+
         canvas_vulkan_pipeline_destroy(renderer);
         canvas_vulkan_shader_destroy(renderer);
-        canvas_vulkan_imageviews_destroy(renderer);
-        canvas_vulkan_swapchain_destroy(renderer);
+
+        if (renderer->prepared_is)
+        {
+            canvas_vulkan_imageviews_destroy(renderer);
+            canvas_vulkan_swapchain_destroy(renderer);
+        }
+
         canvas_vulkan_surface_destroy(renderer);
 
+        renderer->prepared_is = false;
         renderer->started_is = false;
+
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "finish shutdown");
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_INFO, spore_string_substr(renderer->name, 7), "shutdown");
     }
 }
 
@@ -150,11 +174,55 @@ void canvas_renderer_update(void* const renderer_)
     canvas_vulkan_frame_draw(renderer);
 }
 
-void canvas_renderer_resize(void* const renderer_, const size_t width_, const size_t height_)
+void canvas_renderer_resize(void* const renderer_)
 {
     SPRX_ASSERT(NULL != renderer_, CNVX_RENDERER_ERROR_NULL("renderer"));
 
     CNVX_Renderer_PRIVATE* const renderer = renderer_;
+
+    if (renderer->started_is)
+    {
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "start resize");
+
+        vkDeviceWaitIdle(renderer->vk.device);
+
+        if (renderer->prepared_is)
+        {
+            canvas_vulkan_commandbuffer_destroy(renderer);
+            canvas_vulkan_commandpool_destroy(renderer);
+            canvas_vulkan_framebuffer_destroy(renderer);
+            canvas_vulkan_imageviews_destroy(renderer);
+
+            renderer->prepared_is = false;
+        }
+
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "starting swapchain recreation");
+        canvas_window_framebuffer_size_get(renderer->window, &renderer->width, &renderer->height);
+
+        VkSwapchainKHR swapchain_old = renderer->vk.swapchain;
+
+        if (renderer->width * renderer->height)
+        {
+            canvas_vulkan_swapchain_create(renderer);
+
+            vkDestroySwapchainKHR(renderer->vk.device, swapchain_old, NULL);
+            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "finisheswapchain recreation");
+            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "swapchain recreation (resize)");
+
+            canvas_vulkan_imageviews_create(renderer);
+            canvas_vulkan_framebuffer_create(renderer);
+            canvas_vulkan_commandpool_create(renderer);
+            canvas_vulkan_commandbuffer_create(renderer);
+            canvas_vulkan_commandbuffer_record(renderer);
+
+            renderer->prepared_is = true;
+        }
+
+        canvas_vulkan_frame_draw(renderer);
+
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "finish resize");
+        CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "resize");
+    }
 }
 
 void canvas_renderer_shader_load(void* const renderer_, const CNVX_Renderer_Shader_Type shader_type_, const char* const path_)

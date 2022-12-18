@@ -23,6 +23,9 @@
 #ifndef ___CNVX___CANVAS_H
 #define ___CNVX___CANVAS_H
 
+#include "cnvx/event/event.h"
+#include "cnvx/event/handler.h"
+
 #include "cnvx/logger/color.h"
 #include "cnvx/logger/logger.h"
 

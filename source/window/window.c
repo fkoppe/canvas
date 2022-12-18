@@ -23,6 +23,7 @@
 #include "cnvx/event/event.h"
 #include "cnvx/event/handler.h"
 #include "cnvx/logger/logger.h"
+#include "cnvx/renderer/renderer.h"
 #include "cnvx/window/window.h"
 
 #include "sprx/container/string.h"
@@ -30,6 +31,8 @@
 #include "sprx/core/core.h"
 
 #include "GLFW/glfw3.h"
+
+#include <string.h>
 
 #define CNVX_WINDOW_ERROR_ALLOCATION SPRX_ERROR_ALLOCATION("window", NULL, NULL)
 #define CNVX_WINDOW_ERROR_LOGIC(what, info, care) SPRX_ERROR_LOGIC(what, "window", info, care)
@@ -55,39 +58,273 @@ typedef struct CNVX_Window_PRIVATE
     GLFWwindow* handle;
 } CNVX_Window_PRIVATE;
 
-void canvas_window_moved_callback(GLFWwindow* const window_, const int x, const int y)
+void canvas_window_move_callback(GLFWwindow* const window_, const int x_, const int y_)
 {
     CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
 
     CNVX_Event event;
     event.type = CNVX_EVENT_TYPE_WINDOW_MOVED;
     event.window = window_;
-    event.pos.x = x;
-    event.pos.y = y;
+    event.pos.x = x_;
+    event.pos.y = y_;
 
     canvas_handler_push(window->handler, event);
 }
 
-void canvas_window_resized_callback(GLFWwindow* const window_, const int width, const int height)
+void canvas_window_resize_callback(GLFWwindow* const window_, const int width_, const int height_)
 {
     CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
 
     CNVX_Event event;
     event.type = CNVX_EVENT_TYPE_WINDOW_RESIZED;
     event.window = window_;
-    event.size.width = width;
-    event.size.height = height;
+    event.size.width = width_;
+    event.size.height = height_;
+
+    window->width = event.size.width;
+    window->height = event.size.height;
+
+    canvas_renderer_resize(window->renderer);
 
     canvas_handler_push(window->handler, event);
 }
 
-void canvas_window_closed_callback(GLFWwindow* const window_)
+void canvas_window_close_callback(GLFWwindow* const window_)
 {
     CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
 
     CNVX_Event event;
     event.type = CNVX_EVENT_TYPE_WINDOW_CLOSED;
     event.window = window_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_refresh_callback(GLFWwindow* const window_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_WINDOW_REFRESHED;
+    event.window = window_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_focus_callback(GLFWwindow* const window_, const int focused_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+
+    if (focused_)
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_FOCUSED;
+    }
+    else
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_DEFOCUSED;
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_iconify_callback(GLFWwindow* const window_, const int iconified_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+
+    if (iconified_)
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_ICONIFIED;
+    }
+    else
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_UNICONIFIED;
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_framebuffer_size_callback(GLFWwindow* const window_, const int width_, const int height_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_FRAMEBUFFER_RESIZED;
+    event.window = window_;
+    event.size.width = width_;
+    event.size.height = height_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_mouse_button_callback(GLFWwindow* const window_, const int button_, const int action_, const int mods_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+    event.mouse.button = button_;
+    event.mouse.mods = mods_;
+
+    if (action_ == GLFW_PRESS)
+    {
+        event.type = CNVX_EVENT_TYPE_BUTTON_PRESSED;
+    }
+    else if (action_ == GLFW_RELEASE)
+    {
+        event.type = CNVX_EVENT_TYPE_BUTTON_RELEASED;
+    }
+    else
+    {
+        CNVX_WINDOW_ERROR_GLFW("button action out of range");
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_cursor_move_callback(GLFWwindow* const window_, const double x_, const double y_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_CURSOR_MOVED;
+    event.window = window_;
+    event.pos.x = (int)x_;
+    event.pos.y = (int)y_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_cursor_enter_callback(GLFWwindow* const window_, const int entered_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+
+    if (entered_)
+    {
+        event.type = CNVX_EVENT_TYPE_CURSOR_ENTERED;
+    }
+    else
+    {
+        event.type = CNVX_EVENT_TYPE_CURSOR_LEFT;
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_scroll_callback(GLFWwindow* const window_, const double x_, const double y_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+    
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_SCROLLED;
+    event.window = window_;
+    event.pos.x = x_;
+    event.pos.y = y_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_key_callback(GLFWwindow* const window_, const int key_, const int scancode_, const int action_, const int mods_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+    event.keyboard.key = key_;
+    event.keyboard.scancode = scancode_;
+    event.keyboard.mods = mods_;
+
+    if (action_ == GLFW_PRESS)
+    {
+        event.type = CNVX_EVENT_TYPE_KEY_PRESSED;
+    }
+    else if(action_ == GLFW_RELEASE)
+    {
+        event.type = CNVX_EVENT_TYPE_KEY_RELEASED;
+    }
+    else if (action_ == GLFW_REPEAT)
+    {
+        event.type = CNVX_EVENT_TYPE_KEY_REPEATED;
+    }
+    else
+    {
+        CNVX_WINDOW_ERROR_GLFW("key action out of range");
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_char_callback(GLFWwindow* const window_, const unsigned int codepoint_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_CODEPOINT_INPUT;
+    event.window = window_;
+    event.codepoint = codepoint_;
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_file_drop_callback(GLFWwindow* const window_, int count_, const char** const paths_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_FILE_DROPPED;
+    event.window = window_;
+    event.file.paths = malloc(count_ * sizeof(*event.file.paths));
+    event.file.count = count_;
+
+    while (count_--)
+    {
+        const size_t size = strlen(paths_[count_]) + 1;
+
+        event.file.paths[count_] = malloc(size * sizeof(*event.file.paths));
+        SPRX_ASSERT(NULL != event.file.paths[count_], CNVX_WINDOW_ERROR_ALLOCATION);
+
+        memcpy(event.file.paths[count_], paths_[count_], size);
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_maximize_callback(GLFWwindow* const window_, const int maximized_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.window = window_;
+
+    if (maximized_)
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_MAXIMIZED;
+    }
+    else
+    {
+        event.type = CNVX_EVENT_TYPE_WINDOW_UNMAXIMIZED;
+    }
+
+    canvas_handler_push(window->handler, event);
+}
+
+void canvas_window_content_scale_callback(GLFWwindow* const window_, const float xscale_, const float yscale_)
+{
+    CNVX_Window_PRIVATE* const window = glfwGetWindowUserPointer(window_);
+
+    CNVX_Event event;
+    event.type = CNVX_EVENT_TYPE_WINDOW_SCALE_CHANGED;
+    event.window = window_;
+    event.scale.x = xscale_;
+    event.scale.y = yscale_;
 
     canvas_handler_push(window->handler, event);
 }
@@ -115,12 +352,6 @@ void* canvas_window_new(const CNVX_Window_Settings settings_, const size_t uniqu
     window->handle = NULL;
 
     SPRX_ASSERT(GLFW_TRUE == glfwInit(), CNVX_WINDOW_ERROR_GLFW("glfwInit failed"));
-
-    glfwSetWindowUserPointer(window->handle, window);
-
-    glfwSetWindowPosCallback(window->handle, canvas_window_moved_callback);
-    glfwSetWindowSizeCallback(window->handle, canvas_window_resized_callback);
-    glfwSetWindowCloseCallback(window->handle, canvas_window_closed_callback);
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -169,11 +400,10 @@ void canvas_window_settings_set(void* const window_, const CNVX_Window_Settings 
 
 void canvas_window_open(void* const window_, const char* const title_, const size_t width_, const size_t height_, bool visible_is_, void* const renderer_)
 {
-    //title and renderer are allowed to be =NULL
-
     SPRX_ASSERT(NULL != window_, CNVX_WINDOW_ERROR_NULL("window"));
     SPRX_ASSERT(width_ > 0, CNVX_WINDOW_ERROR_ARGUMENT("width has to be >0"));
     SPRX_ASSERT(height_ > 0, CNVX_WINDOW_ERROR_ARGUMENT("height has to be >0"));
+    SPRX_ASSERT(NULL != renderer_, CNVX_WINDOW_ERROR_NULL("renderer"));
 
     CNVX_Window_PRIVATE* const window = window_;
 
@@ -191,19 +421,41 @@ void canvas_window_open(void* const window_, const char* const title_, const siz
 
     window->visible_is = visible_is_;
 
+    window->width = width_;
     if (window->settings.limits.width)
     {
-        window->width = SPRX_MIN(width_, window->settings.limits.width);
+        window->width = SPRX_MIN(window->width, window->settings.limits.width);
     }
 
-    if (window->settings.limits.width)
+    window->height = height_;
+    if (window->settings.limits.height)
     {
-        window->height = SPRX_MIN(height_, window->settings.limits.height);
+        window->height = SPRX_MIN(window->height, window->settings.limits.height);
     }
 
     window->renderer = renderer_;
 
     window->handle = glfwCreateWindow(window->width, window->height, window->title, NULL, NULL);
+
+    glfwSetWindowUserPointer(window->handle, window);
+
+    glfwSetWindowPosCallback(window->handle, canvas_window_move_callback);
+    glfwSetWindowSizeCallback(window->handle, canvas_window_resize_callback);
+    glfwSetWindowCloseCallback(window->handle, canvas_window_close_callback);
+    glfwSetWindowRefreshCallback(window->handle, canvas_window_refresh_callback);
+    glfwSetWindowFocusCallback(window->handle, canvas_window_focus_callback);
+    glfwSetWindowIconifyCallback(window->handle, canvas_window_iconify_callback);
+    glfwSetFramebufferSizeCallback(window->handle, canvas_framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window->handle, canvas_mouse_button_callback);
+    glfwSetCursorPosCallback(window->handle, canvas_cursor_move_callback);
+    glfwSetCursorEnterCallback(window->handle, canvas_cursor_enter_callback);
+    glfwSetScrollCallback(window->handle, canvas_scroll_callback);
+    glfwSetKeyCallback(window->handle, canvas_window_key_callback);
+    //glfwSetCharCallback(window->handle, canvas_char_callback);
+    glfwSetDropCallback(window->handle, canvas_file_drop_callback);
+    //glfwSetWindowMaximizeCallback(window->handle, canvas_window_maximize_callback);
+    //glfwSetWindowContentScaleCallback(window->handle, gleq_window_content_scale_callback);
+
 
     CNVX_NLOG(window->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(window->name, 7), "finish initialisation");
 }
@@ -218,8 +470,8 @@ void canvas_window_close(void* const window_)
 
     glfwDestroyWindow(window->handle);
 
-    CNVX_NLOG(window->logger,CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(window->name, 7), "finish shutdown");
-    CNVX_NLOG(window->logger,CNVX_LOGGER_LEVEL_INFO, spore_string_substr(window->name, 7), "shutdown");
+    CNVX_NLOG(window->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(window->name, 7), "finish shutdown");
+    CNVX_NLOG(window->logger, CNVX_LOGGER_LEVEL_INFO, spore_string_substr(window->name, 7), "shutdown");
 
     window->handle = NULL;
 }

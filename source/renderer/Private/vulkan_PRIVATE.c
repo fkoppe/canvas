@@ -485,7 +485,7 @@ void canvas_vulkan_swapchain_create(void* const renderer_)
     swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_create_info.presentMode = VK_PRESENT_MODE_FIFO_KHR; //@TODO
     swapchain_create_info.clipped = VK_TRUE;
-    swapchain_create_info.oldSwapchain = VK_NULL_HANDLE; //@TODO
+    swapchain_create_info.oldSwapchain = renderer->vk.swapchain;
 
     VkResult result = vkCreateSwapchainKHR(renderer->vk.device, &swapchain_create_info, NULL, &renderer->vk.swapchain);
     CNVX_VULKAN_ASSERT(renderer, result, "vkCreateSwapchainKHR");
@@ -1067,37 +1067,40 @@ void canvas_vulkan_frame_draw(void* const renderer_)
 
     CNVX_Renderer_PRIVATE* const renderer = renderer_;
 
-    uint32_t image_index = 0;
+    if (renderer->width * renderer->height)
+    {
+        uint32_t image_index = 0;
 
-    VkResult result = vkAcquireNextImageKHR(renderer->vk.device, renderer->vk.swapchain, INT64_MAX, renderer->vk.semaphore_image_available, VK_NULL_HANDLE, &image_index);
-    CNVX_VULKAN_QASSERT(renderer, result, "vkAcquireNextImageKHR");
+        VkResult result = vkAcquireNextImageKHR(renderer->vk.device, renderer->vk.swapchain, INT64_MAX, renderer->vk.semaphore_image_available, VK_NULL_HANDLE, &image_index);
+        CNVX_VULKAN_QASSERT(renderer, result, "vkAcquireNextImageKHR");
 
-    VkPipelineStageFlags wait_stage_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkPipelineStageFlags wait_stage_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-    VkSubmitInfo submit_info;
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.pNext = NULL;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
-    submit_info.pWaitDstStageMask = wait_stage_mask;
-    submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
-    submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
-    
-    result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
-    CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
+        VkSubmitInfo submit_info;
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.pNext = NULL;
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.pWaitSemaphores = &renderer->vk.semaphore_image_available;
+        submit_info.pWaitDstStageMask = wait_stage_mask;
+        submit_info.commandBufferCount = renderer->vk.swapchain_image_all_count;
+        submit_info.pCommandBuffers = &renderer->vk.commandbuffer_all[image_index];
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &renderer->vk.semaphore_rendering_done;
 
-    VkPresentInfoKHR present_info;
-    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info.pNext = NULL;
-    present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &renderer->vk.semaphore_rendering_done;
-    present_info.swapchainCount = 1;
-    present_info.pSwapchains = &renderer->vk.swapchain;
-    present_info.pImageIndices = &image_index;
-    present_info.pResults = NULL;
+        result = vkQueueSubmit(renderer->vk.queue, 1, &submit_info, VK_NULL_HANDLE);
+        CNVX_VULKAN_QASSERT(renderer, result, "vkQueueSubmit");
 
-    result = vkQueuePresentKHR(renderer->vk.queue, &present_info);
-    CNVX_VULKAN_QASSERT(renderer, result, "vkQueuePresentKHR");
+        VkPresentInfoKHR present_info;
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.pNext = NULL;
+        present_info.waitSemaphoreCount = 1;
+        present_info.pWaitSemaphores = &renderer->vk.semaphore_rendering_done;
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = &renderer->vk.swapchain;
+        present_info.pImageIndices = &image_index;
+        present_info.pResults = NULL;
+
+        result = vkQueuePresentKHR(renderer->vk.queue, &present_info);
+        CNVX_VULKAN_QASSERT(renderer, result, "vkQueuePresentKHR");
+    }
 }

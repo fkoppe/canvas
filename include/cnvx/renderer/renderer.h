@@ -46,7 +46,7 @@ void canvas_renderer_stop(void* const renderer);
 
 void canvas_renderer_update(void* const renderer);
 
-void canvas_renderer_resize(void* const renderer, const size_t width, const size_t height);
+void canvas_renderer_resize(void* const renderer);
 
 void canvas_renderer_shader_load(void* const renderer, const CNVX_Renderer_Shader_Type shader_type, const char* const path);
 
