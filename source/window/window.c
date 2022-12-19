@@ -451,11 +451,10 @@ void canvas_window_open(void* const window_, const char* const title_, const siz
     glfwSetCursorEnterCallback(window->handle, canvas_cursor_enter_callback);
     glfwSetScrollCallback(window->handle, canvas_scroll_callback);
     glfwSetKeyCallback(window->handle, canvas_window_key_callback);
-    //glfwSetCharCallback(window->handle, canvas_char_callback);
+    glfwSetCharCallback(window->handle, canvas_char_callback);
     glfwSetDropCallback(window->handle, canvas_file_drop_callback);
-    //glfwSetWindowMaximizeCallback(window->handle, canvas_window_maximize_callback);
-    //glfwSetWindowContentScaleCallback(window->handle, gleq_window_content_scale_callback);
-
+    glfwSetWindowMaximizeCallback(window->handle, canvas_window_maximize_callback);
+    glfwSetWindowContentScaleCallback(window->handle, canvas_window_content_scale_callback);
 
     CNVX_NLOG(window->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(window->name, 7), "finish initialisation");
 }
