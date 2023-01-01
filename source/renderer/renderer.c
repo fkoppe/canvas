@@ -3,7 +3,7 @@
 *   canvas - https://github.com/fkoppe/canvas                                       *
 *   ************************************************************************        *
 *                                                                                   *
-*   Copyright (C) 2022 Felix Koppe <fkoppe@web.de>                                  *
+*   Copyright (C) 2022 - 2023 Felix Koppe <fkoppe@web.de>                           *
 *                                                                                   *
 *   This program is free software: you can redistribute it and/or modify            *
 *   it under the terms of the GNU Affero General Public License as published        *
@@ -206,8 +206,8 @@ void canvas_renderer_resize(void* const renderer_)
             canvas_vulkan_swapchain_create(renderer);
 
             vkDestroySwapchainKHR(renderer->vk.device, swapchain_old, NULL);
-            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "finisheswapchain recreation");
-            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "swapchain recreation (resize)");
+            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_DEBUG, spore_string_substr(renderer->name, 7), "finish swapchain recreation");
+            CNVX_NLOG(renderer->logger, CNVX_LOGGER_LEVEL_TRACE, spore_string_substr(renderer->name, 7), "swapchain recreation");
 
             canvas_vulkan_imageviews_create(renderer);
             canvas_vulkan_framebuffer_create(renderer);

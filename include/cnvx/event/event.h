@@ -3,7 +3,7 @@
 *   canvas - https://github.com/fkoppe/canvas                                       *
 *   ************************************************************************        *
 *                                                                                   *
-*   Copyright (C) 2022 Felix Koppe <fkoppe@web.de>                                  *
+*   Copyright (C) 2022 - 2023 Felix Koppe <fkoppe@web.de>                           *
 *                                                                                   *
 *   This program is free software: you can redistribute it and/or modify            *
 *   it under the terms of the GNU Affero General Public License as published        *
@@ -25,8 +25,7 @@
 
 #include "sprx/core/essentials.h"
 
-//#include "../include/GLFW/glfw3.h"
-#include "C:/Users/flixk/Desktop/Sandbox/canvas/library/glfw/include/GLFW/glfw3.h"
+#include "GLFW/glfw3.h"
 
 typedef enum CNVX_Key
 {

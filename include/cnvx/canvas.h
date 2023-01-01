@@ -3,7 +3,7 @@
 *   canvas - https://github.com/fkoppe/canvas                                       *
 *   ************************************************************************        *
 *                                                                                   *
-*   Copyright (C) 2022 Felix Koppe <fkoppe@web.de>                                  *
+*   Copyright (C) 2022 - 2023 Felix Koppe <fkoppe@web.de>                           *
 *                                                                                   *
 *   This program is free software: you can redistribute it and/or modify            *
 *   it under the terms of the GNU Affero General Public License as published        *
@@ -23,6 +23,8 @@
 #ifndef ___CNVX___CANVAS_H
 #define ___CNVX___CANVAS_H
 
+#include "sprx/core/info.h"
+
 #include "cnvx/event/event.h"
 #include "cnvx/event/handler.h"
 
@@ -32,8 +34,6 @@
 #include "cnvx/renderer/renderer.h"
 
 #include "cnvx/window/window.h"
-
-#include "sprx/core/info.h"
 
 static const char* const CNVX_INFO_LIBRARY_NAME = "canvas";
 static const SPRX_VERSION CNVX_INFO_LIBRARY_VERSION = SPRX_VERSION_MAKE(0, 0, 1, 0);
